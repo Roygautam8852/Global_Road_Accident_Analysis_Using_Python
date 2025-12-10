@@ -2,16 +2,33 @@ let accidentData = [];
 let filteredData = [];
 
 const charts = {
-  year: null,
-  month: null,
-  roadType: null,
-  weather: null,
-  severity: null,
-  timeOfDay: null,
-  speedLimit: null,
-  ageGroup: null,
-  cause: null,
+  yearLine: null,
+  monthColumn: null,
+  roadTypeBar: null,
+  weatherBar: null,
+  ageBar: null,
+  severityPie: null,
+  timeArea: null,
+  scatter: null,
+  boxplot: null,
+  heatmap: null,
 };
+
+let mapInstance = null;
+let mapLayerGroup = null;
+
+const BAR_COLORS = [
+  "#2563EB",
+  "#F97316",
+  "#10B981",
+  "#EC4899",
+  "#8B5CF6",
+  "#FACC15",
+  "#22C55E",
+  "#14B8A6",
+  "#F43F5E",
+  "#3B82F6",
+];
 
 // Utility: group counts by key
 function groupCount(data, key) {
@@ -68,7 +85,7 @@ function populateFilters(data) {
   fillSelect(severityFilter, severities);
 }
 
-// Apply filters based on dropdowns
+// Apply filters
 function applyFilters() {
   const yearVal = document.getElementById("yearFilter").value;
   const regionVal = document.getElementById("regionFilter").value;
@@ -88,9 +105,10 @@ function applyFilters() {
 
   updateSummaryCards();
   updateCharts();
+  updateMap();
 }
 
-// Update summary metrics
+// Summary cards
 function updateSummaryCards() {
   let totalAccidents = filteredData.length;
   let totalFatalities = 0;
@@ -128,7 +146,7 @@ function updateSummaryCards() {
     avgResponse.toFixed(1) + " min";
 }
 
-// Create or update a Chart.js chart
+// Create or update chart
 function ensureChart(ctxId, type, dataConfig, optionsConfig, chartKey) {
   const ctx = document.getElementById(ctxId).getContext("2d");
   if (charts[chartKey]) {
@@ -144,16 +162,16 @@ function ensureChart(ctxId, type, dataConfig, optionsConfig, chartKey) {
   }
 }
 
-// Update all charts from filteredData
+// Update all charts
 function updateCharts() {
-  // 1. Yearly
+  // 1. Line - accidents by Year
   let yearly = groupCount(filteredData, "Year");
   yearly.sort((a, b) => Number(a.name) - Number(b.name));
   const yearLabels = yearly.map((d) => d.name);
   const yearCounts = yearly.map((d) => d.count);
 
   ensureChart(
-    "chartYear",
+    "chartYearLine",
     "line",
     {
       labels: yearLabels,
@@ -161,27 +179,30 @@ function updateCharts() {
         {
           label: "Accidents",
           data: yearCounts,
+          borderWidth: 2,
+          borderColor: "#2563EB",
+          backgroundColor: "rgba(37, 99, 235, 0.3)",
           tension: 0.3,
+          pointRadius: 3,
         },
       ],
     },
     {
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: true },
-      },
+      scales: { y: { beginAtZero: true } },
+      plugins: { legend: { display: false } },
     },
-    "year"
+    "yearLine"
   );
 
-  // 2. Monthly
+  // 2. Column chart – accidents by Month (vertical)
   const monthly = groupCount(filteredData, "Month");
   const monthLabels = monthly.map((d) => d.name);
   const monthCounts = monthly.map((d) => d.count);
 
   ensureChart(
-    "chartMonth",
+    "chartMonthColumn",
     "bar",
     {
       labels: monthLabels,
@@ -189,26 +210,29 @@ function updateCharts() {
         {
           label: "Accidents",
           data: monthCounts,
+          backgroundColor: monthCounts.map(
+            (_, i) => BAR_COLORS[i % BAR_COLORS.length]
+          ),
         },
       ],
     },
     {
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: true },
-      },
+      indexAxis: "x", // vertical (column)
+      scales: { y: { beginAtZero: true } },
+      plugins: { legend: { display: false } },
     },
-    "month"
+    "monthColumn"
   );
 
-  // 3. Road Type
+  // 3. Bar chart – Road Type (horizontal)
   const roadType = groupCount(filteredData, "Road Type");
   const roadLabels = roadType.map((d) => d.name);
   const roadCounts = roadType.map((d) => d.count);
 
   ensureChart(
-    "chartRoadType",
+    "chartRoadTypeBar",
     "bar",
     {
       labels: roadLabels,
@@ -216,26 +240,29 @@ function updateCharts() {
         {
           label: "Accidents",
           data: roadCounts,
+          backgroundColor: roadCounts.map(
+            (_, i) => BAR_COLORS[i % BAR_COLORS.length]
+          ),
         },
       ],
     },
     {
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: true },
-      },
+      indexAxis: "y", // horizontal bar
+      scales: { x: { beginAtZero: true } },
+      plugins: { legend: { display: false } },
     },
-    "roadType"
+    "roadTypeBar"
   );
 
-  // 4. Weather Conditions
+  // 4. Bar chart – Weather Conditions
   const weather = groupCount(filteredData, "Weather Conditions");
   const weatherLabels = weather.map((d) => d.name);
   const weatherCounts = weather.map((d) => d.count);
 
   ensureChart(
-    "chartWeather",
+    "chartWeatherBar",
     "bar",
     {
       labels: weatherLabels,
@@ -243,104 +270,29 @@ function updateCharts() {
         {
           label: "Accidents",
           data: weatherCounts,
+          backgroundColor: weatherCounts.map(
+            (_, i) => BAR_COLORS[i % BAR_COLORS.length]
+          ),
         },
       ],
     },
     {
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: true },
-      },
+      indexAxis: "y",
+      scales: { x: { beginAtZero: true } },
+      plugins: { legend: { display: false } },
     },
-    "weather"
+    "weatherBar"
   );
 
-  // 5. Severity (Pie)
-  const severity = groupCount(filteredData, "Accident Severity");
-  const severityLabels = severity.map((d) => d.name);
-  const severityCounts = severity.map((d) => d.count);
-
-  ensureChart(
-    "chartSeverity",
-    "pie",
-    {
-      labels: severityLabels,
-      datasets: [
-        {
-          data: severityCounts,
-        },
-      ],
-    },
-    {
-      responsive: true,
-      maintainAspectRatio: false,
-    },
-    "severity"
-  );
-
-  // 6. Time of Day
-  const timeOfDay = groupCount(filteredData, "Time of Day");
-  const timeLabels = timeOfDay.map((d) => d.name);
-  const timeCounts = timeOfDay.map((d) => d.count);
-
-  ensureChart(
-    "chartTimeOfDay",
-    "bar",
-    {
-      labels: timeLabels,
-      datasets: [
-        {
-          label: "Accidents",
-          data: timeCounts,
-        },
-      ],
-    },
-    {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: true },
-      },
-    },
-    "timeOfDay"
-  );
-
-  // 7. Speed Limit
-  const speedLimit = groupCount(filteredData, "Speed Limit");
-  speedLimit.sort((a, b) => Number(a.name) - Number(b.name));
-  const speedLabels = speedLimit.map((d) => d.name);
-  const speedCounts = speedLimit.map((d) => d.count);
-
-  ensureChart(
-    "chartSpeedLimit",
-    "bar",
-    {
-      labels: speedLabels,
-      datasets: [
-        {
-          label: "Accidents",
-          data: speedCounts,
-        },
-      ],
-    },
-    {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: true },
-      },
-    },
-    "speedLimit"
-  );
-
-  // 8. Driver Age Group
+  // 5. Bar chart – Driver Age Group
   const ageGroup = groupCount(filteredData, "Driver Age Group");
   const ageLabels = ageGroup.map((d) => d.name);
   const ageCounts = ageGroup.map((d) => d.count);
 
   ensureChart(
-    "chartAgeGroup",
+    "chartAgeBar",
     "bar",
     {
       labels: ageLabels,
@@ -348,6 +300,103 @@ function updateCharts() {
         {
           label: "Accidents",
           data: ageCounts,
+          backgroundColor: ageCounts.map(
+            (_, i) => BAR_COLORS[i % BAR_COLORS.length]
+          ),
+        },
+      ],
+    },
+    {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: "y",
+      scales: { x: { beginAtZero: true } },
+      plugins: { legend: { display: false } },
+    },
+    "ageBar"
+  );
+
+  // 6. Pie chart – severity distribution
+  const severity = groupCount(filteredData, "Accident Severity");
+  const severityLabels = severity.map((d) => d.name);
+  const severityCounts = severity.map((d) => d.count);
+
+  ensureChart(
+    "chartSeverityPie",
+    "pie",
+    {
+      labels: severityLabels,
+      datasets: [
+        {
+          data: severityCounts,
+          backgroundColor: severityCounts.map(
+            (_, i) => BAR_COLORS[i % BAR_COLORS.length]
+          ),
+        },
+      ],
+    },
+    {
+      responsive: true,
+      maintainAspectRatio: false,
+    },
+    "severityPie"
+  );
+
+  // 7. Area chart – accidents by Time of Day
+  const timeOfDay = groupCount(filteredData, "Time of Day");
+  const timeLabels = timeOfDay.map((d) => d.name);
+  const timeCounts = timeOfDay.map((d) => d.count);
+
+  ensureChart(
+    "chartTimeArea",
+    "line",
+    {
+      labels: timeLabels,
+      datasets: [
+        {
+          label: "Accidents",
+          data: timeCounts,
+          borderColor: "#10B981",
+          backgroundColor: "rgba(16, 185, 129, 0.3)",
+          fill: true,
+          tension: 0.3,
+        },
+      ],
+    },
+    {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true } },
+      plugins: { legend: { display: false } },
+    },
+    "timeArea"
+  );
+
+  // 8. Scatterplot – Injuries vs Fatalities
+  const scatterPoints = filteredData
+    .map((row) => {
+      const x = Number(row["Number of Injuries"]);
+      const y = Number(row["Number of Fatalities"]);
+      const sev = String(row["Accident Severity"] || "");
+      if (isNaN(x) || isNaN(y)) return null;
+      return { x, y, severity: sev };
+    })
+    .filter(Boolean);
+
+  const scatterData = scatterPoints.map((p) => ({
+    x: p.x,
+    y: p.y,
+  }));
+
+  ensureChart(
+    "chartScatter",
+    "scatter",
+    {
+      datasets: [
+        {
+          label: "Injuries vs Fatalities",
+          data: scatterData,
+          backgroundColor: "rgba(59, 130, 246, 0.7)",
         },
       ],
     },
@@ -355,28 +404,102 @@ function updateCharts() {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        y: { beginAtZero: true },
+        x: { title: { display: true, text: "Number of Injuries" } },
+        y: { title: { display: true, text: "Number of Fatalities" } },
       },
+      plugins: { legend: { display: false } },
     },
-    "ageGroup"
+    "scatter"
   );
 
-  // 9. Top 10 Accident Causes
-  let cause = groupCount(filteredData, "Accident Cause");
-  cause.sort((a, b) => b.count - a.count);
-  const top10 = cause.slice(0, 10);
-  const causeLabels = top10.map((d) => d.name);
-  const causeCounts = top10.map((d) => d.count);
+  // 9. Boxplot – Economic Loss by Severity (using plugin)
+  const severityGroups = {};
+  filteredData.forEach((row) => {
+    const sev = row["Accident Severity"];
+    const loss = Number(row["Economic Loss"]);
+    if (!sev || isNaN(loss)) return;
+    if (!severityGroups[sev]) severityGroups[sev] = [];
+    severityGroups[sev].push(loss);
+  });
+
+  const boxLabels = Object.keys(severityGroups);
+  const boxDataArrays = boxLabels.map((label) => severityGroups[label]);
 
   ensureChart(
-    "chartCause",
-    "bar",
+    "chartBoxplot",
+    "boxplot",
     {
-      labels: causeLabels,
+      labels: boxLabels,
       datasets: [
         {
-          label: "Accidents",
-          data: causeCounts,
+          label: "Economic Loss",
+          data: boxDataArrays,
+          backgroundColor: "rgba(244, 63, 94, 0.4)",
+          borderColor: "#F43F5E",
+        },
+      ],
+    },
+    {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          title: { display: true, text: "Economic Loss" },
+        },
+      },
+    },
+    "boxplot"
+  );
+
+  // 10. Heatmap – Severity vs Weather (matrix)
+  const severityIndex = {};
+  const weatherIndex = {};
+  const sevList = [];
+  const weatherList = [];
+
+  severity.forEach((d, i) => {
+    severityIndex[d.name] = i;
+    sevList.push(d.name);
+  });
+  weather.forEach((d, i) => {
+    weatherIndex[d.name] = i;
+    weatherList.push(d.name);
+  });
+
+  const matrixCounts = {};
+  filteredData.forEach((row) => {
+    const sev = row["Accident Severity"];
+    const w = row["Weather Conditions"];
+    if (!sev || !w) return;
+    const key = `${sev}||${w}`;
+    matrixCounts[key] = (matrixCounts[key] || 0) + 1;
+  });
+
+  const matrixData = Object.entries(matrixCounts).map(([key, value]) => {
+    const [sev, w] = key.split("||");
+    return {
+      x: weatherIndex[w],
+      y: severityIndex[sev],
+      v: value,
+    };
+  });
+
+  ensureChart(
+    "chartHeatmap",
+    "matrix",
+    {
+      datasets: [
+        {
+          label: "Count",
+          data: matrixData,
+          backgroundColor(ctx) {
+            const v = ctx.raw.v;
+            // simple mapping to alpha
+            const alpha = Math.min(0.2 + v / 50, 1);
+            return `rgba(37, 99, 235, ${alpha})`;
+          },
+          width: () => 20,
+          height: () => 20,
         },
       ],
     },
@@ -385,16 +508,87 @@ function updateCharts() {
       maintainAspectRatio: false,
       scales: {
         x: {
+          type: "linear",
+          position: "bottom",
           ticks: {
-            maxRotation: 45,
-            minRotation: 30,
+            callback(value) {
+              return weatherList[value] || "";
+            },
+          },
+          offset: true,
+        },
+        y: {
+          type: "linear",
+          ticks: {
+            callback(value) {
+              return sevList[value] || "";
+            },
+          },
+          offset: true,
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title() {
+              return "";
+            },
+            label(ctx) {
+              const raw = ctx.raw;
+              const sev = sevList[raw.y];
+              const w = weatherList[raw.x];
+              return `${sev} × ${w}: ${raw.v}`;
+            },
           },
         },
-        y: { beginAtZero: true },
       },
     },
-    "cause"
+    "heatmap"
   );
+}
+
+// Map chart with Leaflet
+function updateMap() {
+  const byCountry = groupCount(filteredData, "Country");
+
+  if (!mapInstance) {
+    mapInstance = L.map("mapChart").setView([20, 0], 2);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 6,
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(mapInstance);
+    mapLayerGroup = L.layerGroup().addTo(mapInstance);
+  }
+
+  mapLayerGroup.clearLayers();
+
+  // Basic example coords – extend this mapping for your countries
+  const countryCoords = {
+    India: { lat: 22.9734, lng: 78.6569 },
+    "United States": { lat: 39.8283, lng: -98.5795 },
+    "United Kingdom": { lat: 55.3781, lng: -3.436 },
+    Canada: { lat: 56.1304, lng: -106.3468 },
+    Australia: { lat: -25.2744, lng: 133.7751 },
+  };
+
+  byCountry.forEach((entry) => {
+    const country = entry.name;
+    const count = entry.count;
+    const coord = countryCoords[country];
+    if (!coord) return; // skip if no coordinates defined
+
+    const radius = 50000 + count * 500; // simple scaling
+
+    L.circle([coord.lat, coord.lng], {
+      radius,
+      color: "#EF4444",
+      fillColor: "#F97316",
+      fillOpacity: 0.4,
+    })
+      .bindPopup(`${country}<br>Accidents: ${count}`)
+      .addTo(mapLayerGroup);
+  });
 }
 
 // Load CSV using PapaParse
@@ -408,7 +602,6 @@ function loadData() {
       accidentData = results.data || [];
       populateFilters(accidentData);
 
-      // Default: no filters (All)
       document.getElementById("yearFilter").value = "All";
       document.getElementById("regionFilter").value = "All";
       document.getElementById("severityFilter").value = "All";
@@ -422,7 +615,7 @@ function loadData() {
   });
 }
 
-// Add event listeners for filters
+// Attach filter listeners
 function attachFilterListeners() {
   document
     .getElementById("yearFilter")

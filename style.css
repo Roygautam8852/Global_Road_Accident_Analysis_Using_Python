@@ -116,3 +116,15 @@ body {
   font-weight: 600;
   margin: 2px 0 8px;
 }
+
+/* Map */
+.map-card {
+  height: 350px;
+}
+
+#mapChart {
+  flex: 1;
+  height: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+}

@@ -5,16 +5,30 @@
   <title>Road Accident Analytics Dashboard</title>
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- PapaParse CDN -->
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Chart.js Plugins -->
+  <!-- Heatmap (matrix) -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@2.0.0/dist/chartjs-chart-matrix.min.js"></script>
+  <!-- Boxplot plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@4.2.3/build/Chart.BoxPlot.js"></script>
+
+  <!-- PapaParse (CSV) -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <!-- Leaflet for Map -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
   <header class="header">
     <div class="header-left">
       <h1>Road Accident Analytics Dashboard</h1>
-      <p>HTML + CSS + JavaScript + Chart.js</p>
+      <p>HTML + CSS + JS + Chart.js + Leaflet</p>
     </div>
     <div class="header-right">
       <span>Dataset: road_accident_dataset.csv</span>
@@ -73,48 +87,58 @@
     <!-- Charts Grid -->
     <section class="charts-grid">
       <div class="card chart-card">
-        <h3>Total Accidents by Year</h3>
-        <canvas id="chartYear"></canvas>
+        <h3>Line Chart – Accidents by Year</h3>
+        <canvas id="chartYearLine"></canvas>
       </div>
 
       <div class="card chart-card">
-        <h3>Accidents by Month</h3>
-        <canvas id="chartMonth"></canvas>
+        <h3>Column Chart – Accidents by Month</h3>
+        <canvas id="chartMonthColumn"></canvas>
       </div>
 
       <div class="card chart-card">
-        <h3>Accidents by Road Type</h3>
-        <canvas id="chartRoadType"></canvas>
+        <h3>Bar Chart – Accidents by Road Type</h3>
+        <canvas id="chartRoadTypeBar"></canvas>
       </div>
 
       <div class="card chart-card">
-        <h3>Accidents by Weather Conditions</h3>
-        <canvas id="chartWeather"></canvas>
+        <h3>Bar Chart – Accidents by Weather Conditions</h3>
+        <canvas id="chartWeatherBar"></canvas>
       </div>
 
       <div class="card chart-card">
-        <h3>Accident Severity Distribution</h3>
-        <canvas id="chartSeverity"></canvas>
+        <h3>Bar Chart – Accidents by Driver Age Group</h3>
+        <canvas id="chartAgeBar"></canvas>
       </div>
 
       <div class="card chart-card">
-        <h3>Accidents by Time of Day</h3>
-        <canvas id="chartTimeOfDay"></canvas>
+        <h3>Pie Chart – Accident Severity Distribution</h3>
+        <canvas id="chartSeverityPie"></canvas>
       </div>
 
       <div class="card chart-card">
-        <h3>Accidents by Speed Limit</h3>
-        <canvas id="chartSpeedLimit"></canvas>
+        <h3>Area Chart – Accidents by Time of Day</h3>
+        <canvas id="chartTimeArea"></canvas>
       </div>
 
       <div class="card chart-card">
-        <h3>Accidents by Driver Age Group</h3>
-        <canvas id="chartAgeGroup"></canvas>
+        <h3>Scatter Plot – Injuries vs Fatalities</h3>
+        <canvas id="chartScatter"></canvas>
       </div>
 
       <div class="card chart-card">
-        <h3>Top 10 Accident Causes</h3>
-        <canvas id="chartCause"></canvas>
+        <h3>Boxplot – Economic Loss by Severity</h3>
+        <canvas id="chartBoxplot"></canvas>
+      </div>
+
+      <div class="card chart-card">
+        <h3>Heatmap – Severity vs Weather</h3>
+        <canvas id="chartHeatmap"></canvas>
+      </div>
+
+      <div class="card chart-card map-card">
+        <h3>Map Chart – Accidents by Country</h3>
+        <div id="mapChart"></div>
       </div>
     </section>
   </main>
